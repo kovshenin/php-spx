@@ -1015,6 +1015,48 @@ static void parse_function_extras(const zend_execute_data * execute_data, spx_ph
             return;
         }
     }
+
+    // WP_Hook
+    if (
+        strcmp(cn, "WP_Hook") == 0
+        && (
+            strcmp(fn, "do_action") == 0
+            || strcmp(fn, "apply_filters") == 0
+        )
+    ) {
+        zval * wp_current_filter = zend_hash_str_find(
+            &EG(symbol_table),
+            "wp_current_filter",
+            sizeof("wp_current_filter") - 1
+        );
+
+        if (!wp_current_filter) {
+            return;
+        }
+
+        // wp_current_filter -> IS_INDIRECT -> IS_REFERENCE -> IS_ARRAY
+        ZVAL_DEINDIRECT(wp_current_filter);
+        ZVAL_DEREF(wp_current_filter);
+
+        if (Z_TYPE_P(wp_current_filter) != IS_ARRAY) {
+            return;
+        }
+
+        HashTable * ht = Z_ARRVAL_P(wp_current_filter);
+        if (zend_hash_num_elements(ht) == 0) {
+            return;
+        }
+
+        HashPosition pos;
+        zend_hash_internal_pointer_end_ex(ht, &pos);
+        zval * hook_name = zend_hash_get_current_data_ex(ht, &pos);
+
+        if (hook_name && Z_TYPE_P(hook_name) == IS_STRING) {
+            function->extra = Z_STR_P(hook_name);
+            zend_string_addref(function->extra);
+            return;
+        }
+    }
 }
 
 static void reset_context(void)
