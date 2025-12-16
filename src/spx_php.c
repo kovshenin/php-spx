@@ -991,17 +991,23 @@ static void parse_function_extras(const zend_execute_data * execute_data, spx_ph
         return;
     }
 
-    if (ZEND_CALL_NUM_ARGS(execute_data) < 1) {
-        return;
-    }
-
     const char *fn = function->func_name;
     const char *cn = function->class_name;
 
+    // Global functions
     if (
-        (strlen(cn) < 1 && strcmp(fn, "do_action") == 0)
-        || (strlen(cn) < 1 && strcmp(fn, "apply_filters") == 0)
+        strlen(cn) == 0
+        && (
+            strcmp(fn, "do_action") == 0
+            || strcmp(fn, "apply_filters") == 0
+            || strcmp(fn, "do_action_ref_array") == 0
+            || strcmp(fn, "apply_filters_ref_array") == 0
+        )
     ) {
+        if (ZEND_CALL_NUM_ARGS(execute_data) < 1) {
+            return;
+        }
+
         zval *arg = ZEND_CALL_ARG(execute_data, 1);
         if (Z_TYPE_P(arg) == IS_STRING) {
             function->extra = Z_STR_P(arg);
