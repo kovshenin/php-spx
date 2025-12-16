@@ -256,11 +256,17 @@ static void print_row(
     snprintf(
         format,
         sizeof(format),
-        "%%%zus%%s%%s%%s",
+        "%%%zus%%s%%s%%s%%s%%s",
         depth + 1
     );
 
     char func_name[256];
+    char * extra = "";
+
+    if (function->extra) {
+        extra = ZSTR_VAL(function->extra);
+    }
+
     snprintf(
         func_name,
         sizeof(func_name),
@@ -268,7 +274,9 @@ static void print_row(
         prefix,
         function->class_name,
         function->class_name[0] ? "::" : "",
-        function->func_name
+        function->func_name,
+        extra[0] ? ":" : "",
+        extra
     );
 
     spx_fmt_row_add_tcell(fmt_row, 0, func_name);

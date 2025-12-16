@@ -410,14 +410,21 @@ static size_t print_report(fp_reporter_t * reporter, const spx_profiler_event_t 
 
         char func_name[256];
 
+        char * extra = "";
+        if (entry->function.extra) {
+            extra = ZSTR_VAL(entry->function.extra);
+        }
+
         snprintf(
             func_name,
             sizeof(func_name),
-            "%s%s%s%s",
+            "%s%s%s%s%s%s",
             cycle_depth_str,
             entry->function.class_name,
             entry->function.class_name[0] ? "::" : "",
-            entry->function.func_name
+            entry->function.func_name,
+            extra[0] ? ":" : "",
+            extra
         );
 
         spx_fmt_row_add_tcell(fmt_row, 0, func_name);

@@ -470,6 +470,26 @@ static uint64_t func_table_hmap_hash_key(const void * v)
     return ((const spx_php_function_t *) v)->hash_code;
 }
 
+static int func_table_hmap_zend_string_cmp(const zend_string *a, const zend_string *b) {
+    if (a == NULL && b == NULL) {
+        return 0;
+    }
+
+    if (a == NULL) {
+        return -1;
+    }
+
+    if (b == NULL) {
+        return 1;
+    }
+
+    if (ZSTR_LEN(a) != ZSTR_LEN(b)) {
+        return (ZSTR_LEN(a) < ZSTR_LEN(b)) ? -1 : 1;
+    }
+
+    return memcmp(ZSTR_VAL(a), ZSTR_VAL(b), ZSTR_LEN(a));
+}
+
 static int func_table_hmap_cmp_key(const void * va, const void * vb)
 {
     const spx_php_function_t * a = va;
@@ -483,6 +503,11 @@ static int func_table_hmap_cmp_key(const void * va, const void * vb)
     }
 
     n = strcmp(a->class_name, b->class_name);
+    if (n != 0) {
+        return n;
+    }
+
+    n = func_table_hmap_zend_string_cmp(a->extra, b->extra);
     if (n != 0) {
         return n;
     }
@@ -559,6 +584,11 @@ static void func_table_reset(func_table_t * func_table)
 
         free((char *)entry->function.func_name);
         free((char *)entry->function.class_name);
+
+        if (entry->function.extra) {
+            zend_string_release(entry->function.extra);
+            entry->function.extra = NULL;
+        }
     }
 
     func_table->size = 0;

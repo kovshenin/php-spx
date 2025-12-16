@@ -327,12 +327,19 @@ static void finalize(full_reporter_t * reporter, const spx_profiler_event_t * ev
     for (i = 0; i < event->func_table.size; i++) {
         const spx_profiler_func_table_entry_t * entry = &event->func_table.entries[i];
 
+        char * extra = "";
+        if (entry->function.extra) {
+            extra = ZSTR_VAL(entry->function.extra);
+        }
+
         spx_output_stream_printf(
             reporter->output,
-            "%s%s%s\n",
+            "%s%s%s%s%s\n",
             entry->function.class_name,
             entry->function.class_name[0] ? "::" : "",
-            entry->function.func_name
+            entry->function.func_name,
+            extra[0] ? ":" : "",
+            extra
         );
     }
 

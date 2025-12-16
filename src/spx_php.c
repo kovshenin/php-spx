@@ -170,6 +170,7 @@ static SPX_THREAD_TLS struct {
 } context;
 
 static void execute_data_function(const zend_execute_data * execute_data, spx_php_function_t * function TSRMLS_DC);
+static void parse_function_extras(const zend_execute_data * execute_data, spx_php_function_t * function);
 static void reset_context(void);
 
 #if ZEND_MODULE_API_NO >= 20151012
@@ -264,18 +265,24 @@ void spx_php_current_function(spx_php_function_t * function)
     function->hash_code = 0;
     function->class_name = "";
     function->func_name = "";
+    function->extra = NULL;
 
     if (context.active_function_name) {
         function->class_name = "";
         function->func_name = context.active_function_name;
     } else {
         execute_data_function(EG(current_execute_data), function TSRMLS_CC);
+        parse_function_extras(EG(current_execute_data), function);
     }
 
     function->hash_code =
         zend_inline_hash_func(function->func_name, strlen(function->func_name)) ^
         zend_inline_hash_func(function->class_name, strlen(function->class_name))
     ;
+
+    if (function->extra) {
+        function->hash_code ^= ZSTR_H(function->extra);
+    }
 }
 
 const char * spx_php_ini_get_string(const char * name)
@@ -975,6 +982,34 @@ static void execute_data_function(const zend_execute_data * execute_data, spx_ph
             function->func_name = "[no active file]";
         }
 #endif
+    }
+
+}
+
+static void parse_function_extras(const zend_execute_data * execute_data, spx_php_function_t * function) {
+    if (!function->func_name) {
+        return;
+    }
+
+    if (ZEND_CALL_NUM_ARGS(execute_data) < 1) {
+        return;
+    }
+
+    const char *fn = function->func_name;
+    const char *cn = function->class_name;
+
+    if (
+        (strcmp(cn, "WP_Hook") == 0 && strcmp(fn, "do_action") == 0)
+        || (strcmp(cn, "WP_Hook") == 0 && strcmp(fn, "apply_filters") == 0)
+        || (strlen(cn) < 1 && strcmp(fn, "do_action") == 0)
+        || (strlen(cn) < 1 && strcmp(fn, "apply_filters") == 0)
+    ) {
+        zval *arg = ZEND_CALL_ARG(execute_data, 1);
+        if (Z_TYPE_P(arg) == IS_STRING) {
+            function->extra = Z_STR_P(arg);
+            zend_string_addref(function->extra);
+            return;
+        }
     }
 }
 
