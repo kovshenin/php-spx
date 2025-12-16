@@ -999,9 +999,7 @@ static void parse_function_extras(const zend_execute_data * execute_data, spx_ph
     const char *cn = function->class_name;
 
     if (
-        (strcmp(cn, "WP_Hook") == 0 && strcmp(fn, "do_action") == 0)
-        || (strcmp(cn, "WP_Hook") == 0 && strcmp(fn, "apply_filters") == 0)
-        || (strlen(cn) < 1 && strcmp(fn, "do_action") == 0)
+        (strlen(cn) < 1 && strcmp(fn, "do_action") == 0)
         || (strlen(cn) < 1 && strcmp(fn, "apply_filters") == 0)
     ) {
         zval *arg = ZEND_CALL_ARG(execute_data, 1);
